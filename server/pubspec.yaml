@@ -1,0 +1,21 @@
+name: anki_server
+description: Sync backend for Poormans Anki. Identifies users by a proxy-set email header and stores decks and reviews in Postgres.
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  anki_core:
+    path: ../packages/anki_core
+  logging: ^1.3.0
+  postgres: ^3.4.0
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+  shelf_static: ^1.1.3
+
+dev_dependencies:
+  fsrs: ^2.0.1
+  lints: ^6.0.0
+  test: ^1.25.0

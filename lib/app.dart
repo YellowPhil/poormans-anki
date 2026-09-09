@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'features/shell/app_shell.dart';
+import 'features/sync/sync_bootstrap.dart';
 import 'theme/app_theme.dart';
 
 class App extends StatelessWidget {
@@ -13,6 +14,6 @@ class App extends StatelessWidget {
     darkTheme: buildAppTheme(),
     themeMode: ThemeMode.dark,
     debugShowCheckedModeBanner: false,
-    home: const AppShell(),
+    home: const SyncBootstrap(child: AppShell()),
   );
 }

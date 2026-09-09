@@ -1,7 +1,6 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:uuid/uuid.dart';
 
-import '../domain/deck.dart';
-import '../domain/flashcard.dart';
 import '../scheduler/review_scheduler.dart';
 
 const _seed = <String, List<(String, String)>>{

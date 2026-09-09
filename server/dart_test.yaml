@@ -1,0 +1,3 @@
+tags:
+  postgres:
+    description: Needs TEST_DATABASE_URL pointing at a scratch Postgres.

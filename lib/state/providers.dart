@@ -1,9 +1,9 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
 
 import '../data/deck_repository.dart';
-import '../domain/deck.dart';
-import '../domain/flashcard.dart';
+
 import '../scheduler/review_scheduler.dart';
 import '../storage/file_store.dart';
 import 'decks_notifier.dart';

@@ -1,0 +1,14 @@
+name: anki_core
+description: Domain model and sync merge rules shared by the Poormans Anki app and server.
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  fsrs: ^2.0.1
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

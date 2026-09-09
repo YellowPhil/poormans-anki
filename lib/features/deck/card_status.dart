@@ -1,6 +1,5 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
-
-import '../../domain/flashcard.dart';
 
 enum CardPhase { fresh, learning, review }
 

@@ -20,6 +20,9 @@ class ReviewEntry {
   final Rating rating;
   final DateTime reviewedAt;
 
+  /// Identity used for de-duplication across replicas.
+  String get key => '$cardId@${reviewedAt.toUtc().toIso8601String()}';
+
   Map<String, dynamic> toJson() => {
     'cardId': cardId,
     'deckId': deckId,

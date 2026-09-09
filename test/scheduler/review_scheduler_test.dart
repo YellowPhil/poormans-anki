@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
-import 'package:poormans_anki/domain/flashcard.dart';
-import 'package:poormans_anki/domain/rating.dart';
+import 'package:anki_core/anki_core.dart';
 import 'package:poormans_anki/scheduler/review_scheduler.dart';
 
 void main() {

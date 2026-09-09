@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import '../domain/deck.dart';
-import '../domain/review_entry.dart';
+import 'package:anki_core/anki_core.dart';
+
 import '../storage/file_store.dart';
 
 class DeckRepository {
@@ -31,6 +31,16 @@ class DeckRepository {
 
   Future<void> appendReview(ReviewEntry entry) =>
       _store.append(_reviewsFile, jsonEncode(entry.toJson()));
+
+  Future<List<ReviewEntry>> loadReviews() async {
+    final raw = await _store.read(_reviewsFile);
+    if (raw == null) return const [];
+    return [
+      for (final line in raw.split('\n'))
+        if (line.trim().isNotEmpty)
+          ReviewEntry.fromJson(jsonDecode(line) as Map<String, dynamic>),
+    ];
+  }
 
   String _deckPath(String id) => '$_decksDir/$id.json';
 }

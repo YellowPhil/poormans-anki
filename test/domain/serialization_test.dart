@@ -2,10 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
-import 'package:poormans_anki/domain/deck.dart';
-import 'package:poormans_anki/domain/flashcard.dart';
-import 'package:poormans_anki/domain/rating.dart';
-import 'package:poormans_anki/domain/review_entry.dart';
+import 'package:anki_core/anki_core.dart';
 
 void main() {
   final now = DateTime.utc(2026, 9, 8, 10);

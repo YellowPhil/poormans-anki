@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/navigation.dart';
 import '../../state/providers.dart';
+import '../../sync/sync_service.dart';
 import '../../theme/app_theme.dart';
 import '../add/new_deck_dialog.dart';
+import '../sync/sync_settings_dialog.dart';
 import 'top_bar.dart';
 
 class Sidebar extends ConsumerWidget {
@@ -103,6 +105,8 @@ class Sidebar extends ConsumerWidget {
             muted: true,
             onTap: () => _newDeck(context, ref),
           ),
+          const SizedBox(height: 20),
+          const _SyncItem(),
         ],
       ),
     );
@@ -214,4 +218,32 @@ class _SearchPill extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _SyncItem extends ConsumerWidget {
+  const _SyncItem();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(syncServiceProvider);
+    final (icon, label) = switch (status.phase) {
+      SyncPhase.off => (Icons.cloud_off_outlined, 'Sync off'),
+      SyncPhase.syncing => (Icons.sync_rounded, 'Syncing…'),
+      SyncPhase.idle => (
+        Icons.cloud_done_outlined,
+        'Synced ${formatClock(status.lastSyncAt)}',
+      ),
+      SyncPhase.error => (Icons.cloud_off_outlined, 'Sync failed'),
+    };
+    return NavItem(
+      key: const Key('sidebar-sync'),
+      icon: icon,
+      label: label,
+      muted: true,
+      onTap: () => showDialog<void>(
+        context: context,
+        builder: (_) => const SyncSettingsDialog(),
+      ),
+    );
+  }
 }

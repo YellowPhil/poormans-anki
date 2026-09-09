@@ -1,9 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:poormans_anki/data/deck_repository.dart';
 import 'package:poormans_anki/data/seed_data.dart';
-import 'package:poormans_anki/domain/deck.dart';
-import 'package:poormans_anki/domain/rating.dart';
-import 'package:poormans_anki/domain/review_entry.dart';
+import 'package:anki_core/anki_core.dart';
 import 'package:poormans_anki/storage/memory_file_store.dart';
 
 void main() {

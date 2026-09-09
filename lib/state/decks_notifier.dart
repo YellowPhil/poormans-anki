@@ -1,10 +1,9 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/seed_data.dart';
-import '../domain/deck.dart';
-import '../domain/flashcard.dart';
-import '../domain/rating.dart';
+import '../sync/sync_service.dart';
 import 'providers.dart';
 
 class DecksNotifier extends AsyncNotifier<List<Deck>> {
@@ -15,12 +14,57 @@ class DecksNotifier extends AsyncNotifier<List<Deck>> {
     final repo = ref.watch(deckRepositoryProvider);
     final decks = await repo.loadDecks();
     if (decks.isNotEmpty) return decks;
+    final sync = await ref.read(syncSettingsProvider.future);
+    if (sync.enabled) return const [];
+    return _seed();
+  }
+
+  /// Sync-enabled replicas seed only after the first pull came back empty, so
+  /// two devices never create two copies of the sample decks.
+  Future<void> seedIfEmpty() async {
+    if (_current().isNotEmpty) return;
+    state = AsyncData(await _seed());
+    ref.read(syncServiceProvider.notifier).schedule();
+  }
+
+  Future<List<Deck>> _seed() async {
+    final repo = ref.read(deckRepositoryProvider);
     final seeded = seedDecks(ref.read(clockProvider)())
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     for (final deck in seeded) {
       await repo.saveDeck(deck);
     }
     return seeded;
+  }
+
+  Future<void> applyRemote(
+    List<Deck> remote,
+    List<DeckTombstone> tombstones,
+  ) async {
+    final repo = ref.read(deckRepositoryProvider);
+    final next = <String, Deck>{for (final d in _current()) d.id: d};
+    var changed = false;
+    for (final incoming in remote) {
+      final local = next[incoming.id];
+      final merged = local == null ? incoming : mergeDecks(local, incoming);
+      if (local != null && sameDeck(local, merged)) continue;
+      next[incoming.id] = merged;
+      changed = true;
+      await repo.saveDeck(merged);
+    }
+    for (final tombstone in tombstones) {
+      final local = next[tombstone.id];
+      if (local == null || !tombstone.deletedAt.isAfter(local.updatedAt)) {
+        continue;
+      }
+      next.remove(tombstone.id);
+      changed = true;
+      await repo.deleteDeck(tombstone.id);
+    }
+    if (!changed) return;
+    final decks = next.values.toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    state = AsyncData(decks);
   }
 
   Future<Deck> createDeck(String name) async {
@@ -84,6 +128,7 @@ class DecksNotifier extends AsyncNotifier<List<Deck>> {
           for (final c in deck.cards)
             if (c.id != card.id) c,
         ],
+        removedCards: {...deck.removedCards, card.id: now},
       ),
     );
   }
@@ -102,5 +147,6 @@ class DecksNotifier extends AsyncNotifier<List<Deck>> {
     }
     state = AsyncData(next);
     await ref.read(deckRepositoryProvider).saveDeck(deck);
+    ref.read(syncServiceProvider.notifier).schedule();
   }
 }

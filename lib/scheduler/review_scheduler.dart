@@ -1,8 +1,5 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
-
-import '../domain/flashcard.dart';
-import '../domain/rating.dart';
-import '../domain/review_entry.dart';
 
 class ReviewScheduler {
   ReviewScheduler([fsrs.Scheduler? scheduler])

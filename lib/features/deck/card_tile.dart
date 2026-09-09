@@ -1,6 +1,6 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:flutter/material.dart';
 
-import '../../domain/flashcard.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/card_face.dart';
 import '../../widgets/dashed_divider.dart';

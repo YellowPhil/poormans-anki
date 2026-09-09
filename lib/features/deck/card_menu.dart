@@ -1,7 +1,7 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/flashcard.dart';
 import '../../state/providers.dart';
 import '../../theme/app_theme.dart';
 import 'card_editor.dart';
