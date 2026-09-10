@@ -29,4 +29,5 @@ COPY --from=server /server /server
 COPY --from=web /src/build/web /web
 ENV PORT=8080 WEB_ROOT=/web
 EXPOSE 8080
+USER 65534:65534
 ENTRYPOINT ["/server"]
