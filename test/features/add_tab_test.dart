@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:poormans_anki/data/deck_repository.dart';
 import 'package:poormans_anki/features/add/add_tab.dart';
 
 import 'test_harness.dart';
@@ -39,7 +38,7 @@ void main() {
       await tester.tap(find.byKey(saveButton));
       await tester.pumpAndSettle();
 
-      final decks = await DeckRepository(store).loadDecks();
+      final decks = await persistedDecks(store);
       final beta = decks.firstWhere((d) => d.name == 'Beta');
       expect(beta.cards.single.front, "l'eau");
       expect(beta.cards.single.back, 'water');
@@ -67,7 +66,7 @@ void main() {
 
     await tester.tap(find.byKey(saveButton));
     await tester.pumpAndSettle();
-    final card = (await DeckRepository(store).loadDecks()).single.cards.single;
+    final card = (await persistedDecks(store)).single.cards.single;
     expect(card.front, 'a lone note');
     expect(card.back, '');
   });
@@ -100,7 +99,7 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pumpAndSettle();
 
-    final cards = (await DeckRepository(store).loadDecks()).single.cards;
+    final cards = (await persistedDecks(store)).single.cards;
     expect(cards.single.front, 'q');
     expect(editorText(tester), isEmpty);
   });
@@ -116,7 +115,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(editorText(tester), isEmpty);
-    expect((await DeckRepository(store).loadDecks()).single.cards, isEmpty);
+    expect((await persistedDecks(store)).single.cards, isEmpty);
   });
 
   testWidgets('New deck from the chip menu creates and selects the deck', (
@@ -143,9 +142,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(saveButton));
     await tester.pumpAndSettle();
-    final gamma = (await DeckRepository(
-      store,
-    ).loadDecks()).firstWhere((d) => d.name == 'Gamma');
+    final gamma = (await persistedDecks(store))
+        .firstWhere((d) => d.name == 'Gamma');
     expect(gamma.cards, hasLength(1));
   });
 }

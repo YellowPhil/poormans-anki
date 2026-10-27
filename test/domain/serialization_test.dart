@@ -60,6 +60,7 @@ void main() {
 
   test('ReviewEntry survives JSON round trip', () {
     final entry = ReviewEntry(
+      id: 'r1',
       cardId: 'c1',
       deckId: 'd1',
       rating: Rating.hard,
@@ -71,6 +72,16 @@ void main() {
     expect(restored.toJson(), entry.toJson());
     expect(restored.rating, Rating.hard);
     expect(entry.toJson()['rating'], 2);
+  });
+
+  test('ReviewEntry without an id gets the v1 legacy id', () {
+    final restored = ReviewEntry.fromJson({
+      'cardId': 'c1',
+      'deckId': 'd1',
+      'rating': 3,
+      'reviewedAt': now.toIso8601String(),
+    });
+    expect(restored.id, 'v1:c1@2026-09-08T10:00:00.000Z');
   });
 
   test('Flashcard.copyWith replaces scheduling and updatedAt only', () {

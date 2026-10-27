@@ -15,10 +15,13 @@ class _RecordingClient implements SyncClient {
   int calls = 0;
 
   @override
-  Future<SyncResponse> sync(SyncRequest request) {
+  Future<SyncPull> sync(SyncPush push) {
     calls++;
-    return server.sync('me@x.io', request);
+    return server.sync('me@x.io', push);
   }
+
+  @override
+  Future<CollectionSnapshot> collection() => server.collection('me@x.io');
 }
 
 void main() {
@@ -58,5 +61,10 @@ void main() {
     expect(saved, {'serverUrl': 'http://localhost:8080', 'email': 'me@x.io'});
     expect(client.calls, greaterThan(0));
     expect(find.textContaining('Synced'), findsOneWidget);
+    final onServer = await client.server.collection('me@x.io');
+    expect(onServer.collection.decks.map((d) => d.name), [
+      'Capitals',
+      'Spanish basics',
+    ]);
   });
 }

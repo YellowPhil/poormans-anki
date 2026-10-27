@@ -1,6 +1,6 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:poormans_anki/data/deck_repository.dart';
 import 'package:poormans_anki/features/inbox/mobile_review.dart';
 import 'package:poormans_anki/storage/memory_file_store.dart';
 
@@ -52,7 +52,7 @@ void main() {
       await tester.tap(find.byKey(const Key('rate-again')));
       await tester.pumpAndSettle();
       expect(find.text('1 / 2'), findsOneWidget);
-      expect(store.files['reviews.jsonl'], contains('"rating":1'));
+      expect(await persistedRatings(store), [Rating.again]);
     },
   );
 
@@ -68,7 +68,7 @@ void main() {
 
     expect(find.text('vouloir'), findsNothing);
     expect(find.text('pouvoir'), findsOneWidget);
-    final saved = (await DeckRepository(store).loadDecks()).single;
+    final saved = (await persistedDecks(store)).single;
     expect(saved.cards.map((c) => c.id), ['c2']);
   });
 }

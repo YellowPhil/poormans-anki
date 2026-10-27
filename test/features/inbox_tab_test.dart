@@ -1,7 +1,7 @@
+import 'package:anki_core/anki_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:poormans_anki/data/deck_repository.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:poormans_anki/features/inbox/inbox_tab.dart';
 
@@ -34,8 +34,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('All caught up'), findsOneWidget);
-    expect(store.files['reviews.jsonl'], contains('"rating":4'));
-    final saved = (await DeckRepository(store).loadDecks()).single.cards.single;
+    expect(await persistedRatings(store), [Rating.easy]);
+    final saved = (await persistedDecks(store)).single.cards.single;
     expect(saved.due.isAfter(testNow), isTrue);
   });
 
@@ -134,6 +134,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('second'), findsOneWidget);
     expect(find.text('second back'), findsNothing);
-    expect(store.files['reviews.jsonl'], contains('"rating":4'));
+    expect(await persistedRatings(store), [Rating.easy]);
   });
 }

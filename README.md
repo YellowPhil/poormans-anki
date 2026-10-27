@@ -30,7 +30,7 @@ python3 -m http.server 8000 -d build/web
 
 ## Sync
 
-Every device keeps a full local copy and syncs it with the server: on launch, on resume, every five minutes, and about 1.5 s after each edit. The server keeps one copy per user, and merges are card-wise last-writer-wins with deletion tombstones, so reviewing on the phone while adding cards on the laptop keeps both changes. The review log is an append-only set de-duplicated by card id and time.
+Every device keeps a full local copy and syncs on launch, on resume, every five minutes, and about 1.5 s after each edit. Edits are recorded as operations (deck created or renamed, card added, edited, removed or reviewed) and appended to a local outbox before they show in the UI, so nothing is lost offline or across restarts. The server gives every accepted operation the next number in a per-user log and de-duplicates resends by operation id; devices pull the log from their last position and fold it with the same reducer the server uses. Order on the server, not device clocks, decides concurrent edits; removals are final; every review is kept and the FSRS schedule is recomputed from the full review history, so all devices show the same due dates. A device that is new, was offline past a server compaction, or switches server downloads the whole collection once. Design: `docs/sync-v2-design.md`.
 
 Sync is configured from the **Sync** item at the bottom of the sidebar (server URL, and an email for development). The web build is served by the same server and syncs against its own origin out of the box.
 
@@ -38,14 +38,15 @@ Sync is configured from the **Sync** item at the bottom of the sidebar (server U
 
 ## Server
 
-`server/` is a Dart `shelf` service backed by Postgres (decks and review entries as `jsonb`). Migrations run at start-up.
+`server/` is a Dart `shelf` service backed by Postgres: an `ops` log plus materialized `decks`, `cards` and `reviews` tables. Migrations run at start-up; v1 data is imported into the v2 tables.
 
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /healthz` | Liveness and database check, public |
 | `GET /api/v1/me` | Echo the identity the proxy supplied |
-| `GET /api/v1/sync?since=<iso>` | Pull changes after a cursor |
-| `POST /api/v1/sync` | Push decks, deck tombstones and reviews; returns changes and a new cursor |
+| `POST /api/v2/sync` | Push up to 500 ops after `since`; returns `head`, `acked` op ids and up to 2000 ops after `since` (`more` when truncated). `410 {floor}` when `since` was compacted |
+| `GET /api/v2/collection` | The whole collection at `seq` |
+| `/api/v1/sync` | `410`: retired protocol |
 
 Environment:
 
@@ -66,7 +67,7 @@ cd server && dart run bin/server.dart
 curl -H 'Remote-Email: you@example.com' localhost:8080/api/v1/me
 ```
 
-Tests (the Postgres contract test runs when `TEST_DATABASE_URL` is set):
+Tests (the Postgres contract test runs when `TEST_DATABASE_URL` is set; the app's `test/sync/end_to_end_test.dart` honours the same variable and wipes that database's `public` schema):
 
 ```sh
 cd server
@@ -88,13 +89,12 @@ Put the authenticating proxy in front of port 8080. Native apps point their Sync
 
 ```
 packages/anki_core/   Shared pure-Dart package: Deck, Flashcard, Rating, ReviewEntry,
-                      sync payloads, merge rules, reference in-memory sync server
+                      sync ops, Collection reducer, FSRS fold, reference sync server
 server/               shelf API, Postgres and in-memory stores, Dockerfile entrypoint
 lib/
-  scheduler/    FSRS wrapper
-  data/         DeckRepository over a FileStore, seed decks
+  data/         CollectionStore (base + outbox over a FileStore), v1 import, seeds
   storage/      FileStore implementations: local files, localStorage, in-memory
-  sync/         settings, HTTP client, SyncService (push, pull, merge)
+  sync/         settings, HTTP client, SyncService (push outbox, pull log)
   state/        Riverpod notifiers and providers
   features/     shell, inbox, deck, add, search, statistics, sync
   theme/        dark warm-monochrome theme

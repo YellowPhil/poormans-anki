@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../state/providers.dart';
-import '../storage/file_store.dart';
 import 'sync_client.dart';
 import 'sync_settings.dart';
 
@@ -20,32 +19,7 @@ class SyncStatus {
   final String? error;
 }
 
-/// [cursor] is the server's watermark; [lastPushAt] is the local clock when
-/// the last push was assembled. Anything stamped at or after it is pending;
-/// the inclusive bound re-sends same-instant writes, which the server
-/// de-duplicates.
-class SyncCursor {
-  const SyncCursor({this.cursor, this.lastPushAt});
-
-  factory SyncCursor.fromJson(Map<String, dynamic> json) => SyncCursor(
-    cursor: _date(json['cursor']),
-    lastPushAt: _date(json['lastPushAt']),
-  );
-
-  final DateTime? cursor;
-  final DateTime? lastPushAt;
-
-  Map<String, dynamic> toJson() => {
-    if (cursor != null) 'cursor': cursor!.toIso8601String(),
-    if (lastPushAt != null) 'lastPushAt': lastPushAt!.toIso8601String(),
-  };
-
-  static DateTime? _date(Object? raw) =>
-      raw is String ? DateTime.parse(raw).toUtc() : null;
-}
-
 const _settingsPath = 'sync/settings.json';
-const _cursorPath = 'sync/state.json';
 
 class SyncSettingsNotifier extends AsyncNotifier<SyncSettings> {
   @override
@@ -81,10 +55,11 @@ final syncServiceProvider = NotifierProvider<SyncService, SyncStatus>(
   SyncService.new,
 );
 
-/// Push local changes, pull remote ones, merge. One run at a time; a request
-/// arriving mid-run queues exactly one follow-up run.
+/// Push the outbox, pull ops after the cursor, rebase. One run at a time; a
+/// request arriving mid-run queues exactly one follow-up run.
 class SyncService extends Notifier<SyncStatus> {
   static const debounce = Duration(milliseconds: 1500);
+  static const _maxRounds = 1000;
 
   Timer? _debounce;
   Future<void>? _inFlight;
@@ -126,46 +101,28 @@ class SyncService extends Notifier<SyncStatus> {
       return;
     }
     state = SyncStatus(phase: SyncPhase.syncing, lastSyncAt: state.lastSyncAt);
-    final store = ref.read(fileStoreProvider);
     try {
-      final cursor = await _loadCursor(store);
-      final decks = await ref.read(decksProvider.future);
-      final repo = ref.read(deckRepositoryProvider);
-      final localReviews = await repo.loadReviews();
-      final lastPush = cursor.lastPushAt;
-      bool pending(DateTime t) => lastPush == null || !t.isBefore(lastPush);
-      final pushAt = ref.read(clockProvider)();
-      final response = await ref
-          .read(syncClientFactoryProvider)(settings)
-          .sync(
-            SyncRequest(
-              since: cursor.cursor,
-              decks: [
-                for (final d in decks)
-                  if (pending(d.updatedAt)) d,
-              ],
-              reviews: [
-                for (final r in localReviews)
-                  if (pending(r.reviewedAt)) r,
-              ],
-            ),
+      final store = await ref.read(collectionStoreProvider.future);
+      final key = targetKey(settings);
+      if (store.attachedTo != key) await store.rebind(key);
+      final client = ref.read(syncClientFactoryProvider)(settings);
+      final fresh = store.seq == 0;
+      if (fresh) await store.applySnapshot(await client.collection());
+      for (var round = 0; round < _maxRounds; round++) {
+        final batch = await store.pending(SyncPush.maxOps);
+        final SyncPull pull;
+        try {
+          pull = await client.sync(
+            SyncPush(clientId: store.clientId, since: store.seq, ops: batch),
           );
-      await ref
-          .read(decksProvider.notifier)
-          .applyRemote(response.decks, response.deletedDecks);
-      final known = {for (final r in localReviews) r.key};
-      for (final r in response.reviews) {
-        if (known.add(r.key)) await repo.appendReview(r);
+        } on CursorExpired {
+          await store.applySnapshot(await client.collection());
+          continue;
+        }
+        await store.applyPull(pull);
+        if (!pull.more && batch.length < SyncPush.maxOps) break;
       }
-      await store.write(
-        _cursorPath,
-        jsonEncode(
-          SyncCursor(cursor: response.cursor, lastPushAt: pushAt).toJson(),
-        ),
-      );
-      if (cursor.cursor == null) {
-        await ref.read(decksProvider.notifier).seedIfEmpty();
-      }
+      if (fresh) await ref.read(decksProvider.notifier).seedIfEmpty();
       state = SyncStatus(
         phase: SyncPhase.idle,
         lastSyncAt: ref.read(clockProvider)(),
@@ -179,11 +136,7 @@ class SyncService extends Notifier<SyncStatus> {
     }
   }
 
-  Future<void> resetCursor() => ref.read(fileStoreProvider).delete(_cursorPath);
-
-  Future<SyncCursor> _loadCursor(FileStore store) async {
-    final raw = await store.read(_cursorPath);
-    if (raw == null) return const SyncCursor();
-    return SyncCursor.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-  }
+  /// A different server or identity is a different collection.
+  static String targetKey(SyncSettings settings) =>
+      '${settings.serverUrl!.trim()}|${settings.email?.trim() ?? ''}';
 }

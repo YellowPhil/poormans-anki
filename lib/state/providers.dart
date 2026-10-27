@@ -1,10 +1,9 @@
 import 'package:anki_core/anki_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
+import 'package:uuid/uuid.dart';
 
-import '../data/deck_repository.dart';
-
-import '../scheduler/review_scheduler.dart';
+import '../data/collection_store.dart';
 import '../storage/file_store.dart';
 import 'decks_notifier.dart';
 
@@ -18,11 +17,20 @@ final clockProvider = Provider<DateTime Function()>(
       () => DateTime.now().toUtc(),
 );
 
-final schedulerProvider = Provider<ReviewScheduler>((_) => ReviewScheduler());
+final schedulerProvider = Provider<CardScheduler>((_) => CardScheduler());
 
-final deckRepositoryProvider = Provider<DeckRepository>(
-  (ref) => DeckRepository(ref.watch(fileStoreProvider)),
-);
+final newIdProvider = Provider<String Function()>((_) => const Uuid().v4);
+
+final collectionStoreProvider = FutureProvider<CollectionStore>((ref) async {
+  final store = CollectionStore(
+    ref.watch(fileStoreProvider),
+    scheduler: ref.watch(schedulerProvider),
+    newId: ref.watch(newIdProvider),
+  );
+  ref.onDispose(store.dispose);
+  await store.open();
+  return store;
+});
 
 final decksProvider = AsyncNotifierProvider<DecksNotifier, List<Deck>>(
   DecksNotifier.new,

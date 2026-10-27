@@ -1,9 +1,15 @@
 import 'package:anki_core/anki_core.dart';
 
-/// One call = one atomic push+pull for [user]; implementations serialize
-/// concurrent calls for the same user so the returned cursor is exact.
+/// Implementations serialize calls per user, so sequence numbers are dense
+/// and a pull never misses an op committed concurrently.
 abstract interface class SyncStore {
-  Future<SyncResponse> sync(String user, SyncRequest request);
+  /// Throws [CursorExpired] when `push.since` is outside `[floor, head]`.
+  Future<SyncPull> sync(String user, SyncPush push);
+
+  Future<CollectionSnapshot> collection(String user);
+
+  /// Drops op bodies up to [throughSeq]; clients behind it must re-snapshot.
+  Future<void> compact(String user, int throughSeq);
 
   Future<bool> healthy();
 

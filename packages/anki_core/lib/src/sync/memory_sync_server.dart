@@ -1,98 +1,55 @@
-import '../domain/deck.dart';
-import '../domain/review_entry.dart';
-import 'merge.dart';
-import 'sync_payload.dart';
+import 'collection.dart';
+import 'protocol.dart';
 
-class _DeckRow {
-  _DeckRow(this.deck, this.deletedAt, this.syncedAt);
-
-  Deck? deck;
-  DateTime? deletedAt;
-  DateTime syncedAt;
+class _UserLog {
+  final ops = <SequencedOp>[];
+  final opIds = <String>{};
+  final state = Collection();
+  int head = 0;
+  int floor = 0;
 }
 
-class _UserData {
-  final decks = <String, _DeckRow>{};
-  final reviews = <String, (ReviewEntry, DateTime)>{};
-}
-
-/// Reference semantics of the sync endpoint: card-wise deck merge, deck
-/// tombstones, review de-duplication, and a strictly increasing cursor.
+/// Reference semantics of the v2 sync endpoint: op-id de-duplication, a dense
+/// per-user sequence, paged pulls and compaction floors.
 class MemorySyncServer {
-  MemorySyncServer({DateTime Function()? clock})
-    : _clock = clock ?? (() => DateTime.now().toUtc());
+  final _users = <String, _UserLog>{};
 
-  final DateTime Function() _clock;
-  final _users = <String, _UserData>{};
-  DateTime? _last;
-
-  DateTime _tick() {
-    var now = _clock();
-    if (_last != null && !now.isAfter(_last!)) {
-      now = _last!.add(const Duration(microseconds: 1));
+  Future<SyncPull> sync(String user, SyncPush push) async {
+    if (push.ops.length > SyncPush.maxOps) {
+      throw FormatException('at most ${SyncPush.maxOps} ops per push');
     }
-    return _last = now;
+    final log = _users.putIfAbsent(user, _UserLog.new);
+    if (push.since < log.floor || push.since > log.head) {
+      throw CursorExpired(log.floor);
+    }
+    for (final op in push.ops) {
+      if (!log.opIds.add(op.id)) continue;
+      log.head++;
+      log.ops.add(SequencedOp(log.head, op));
+      log.state.apply(op);
+    }
+    final page = [
+      for (final s in log.ops)
+        if (s.seq > push.since) s,
+    ].take(SyncPull.pageSize).toList();
+    return SyncPull(
+      head: log.head,
+      acked: [for (final op in push.ops) op.id],
+      ops: page,
+      more: page.isNotEmpty && page.last.seq < log.head,
+    );
   }
 
-  Future<SyncResponse> sync(String user, SyncRequest request) async {
-    final data = _users.putIfAbsent(user, _UserData.new);
-    final now = _tick();
-    for (final incoming in request.decks) {
-      final row = data.decks[incoming.id];
-      if (row == null) {
-        data.decks[incoming.id] = _DeckRow(incoming, null, now);
-        continue;
-      }
-      final deletedAt = row.deletedAt;
-      if (deletedAt != null && !incoming.updatedAt.isAfter(deletedAt)) continue;
-      final merged = switch (row.deck) {
-        null => incoming,
-        final existing => mergeDecks(existing, incoming),
-      };
-      if (row.deck == null ||
-          deletedAt != null ||
-          !sameDeck(row.deck!, merged)) {
-        row
-          ..deck = merged
-          ..deletedAt = null
-          ..syncedAt = now;
-      }
-    }
-    for (final tombstone in request.deletedDecks) {
-      final row = data.decks[tombstone.id];
-      if (row == null) {
-        data.decks[tombstone.id] = _DeckRow(null, tombstone.deletedAt, now);
-      } else if (row.deletedAt == null &&
-          (row.deck == null ||
-              tombstone.deletedAt.isAfter(row.deck!.updatedAt))) {
-        row
-          ..deletedAt = tombstone.deletedAt
-          ..syncedAt = now;
-      }
-    }
-    for (final entry in request.reviews) {
-      data.reviews.putIfAbsent(entry.key, () => (entry, now));
-    }
-    final since = request.since;
-    bool changed(DateTime syncedAt) => since == null || syncedAt.isAfter(since);
-    return SyncResponse(
-      cursor: now,
-      decks: [
-        for (final row in data.decks.values)
-          if (row.deletedAt == null &&
-              row.deck != null &&
-              changed(row.syncedAt))
-            row.deck!,
-      ],
-      deletedDecks: [
-        for (final MapEntry(key: id, value: row) in data.decks.entries)
-          if (row.deletedAt != null && changed(row.syncedAt))
-            DeckTombstone(id: id, deletedAt: row.deletedAt!),
-      ],
-      reviews: [
-        for (final (entry, syncedAt) in data.reviews.values)
-          if (changed(syncedAt)) entry,
-      ],
-    );
+  Future<CollectionSnapshot> collection(String user) async {
+    final log = _users.putIfAbsent(user, _UserLog.new);
+    return CollectionSnapshot(seq: log.head, collection: log.state.copy());
+  }
+
+  /// Drops ops up to [throughSeq]; clients behind it must re-snapshot.
+  Future<void> compact(String user, int throughSeq) async {
+    final log = _users.putIfAbsent(user, _UserLog.new);
+    final floor = throughSeq.clamp(log.floor, log.head);
+    log.ops.removeWhere((s) => s.seq <= floor);
+    log.floor = floor;
   }
 }

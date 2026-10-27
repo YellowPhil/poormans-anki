@@ -12,6 +12,7 @@ RUN flutter config --no-analytics --enable-web && flutter precache --web
 WORKDIR /src
 COPY pubspec.yaml pubspec.lock ./
 COPY packages/anki_core packages/anki_core
+COPY server/pubspec.yaml server/
 RUN flutter pub get
 COPY . .
 RUN flutter build web --release

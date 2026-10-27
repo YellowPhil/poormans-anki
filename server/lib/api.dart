@@ -17,18 +17,23 @@ final _email = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 Handler buildHandler(SyncStore store, Config config) {
   final api = Router()
     ..get('/v1/me', (Request r) => _json({'email': _user(r)}))
-    ..get('/v1/sync', (Request r) async {
-      final since = r.url.queryParameters['since'];
-      final request = SyncRequest(
-        since: since == null ? null : DateTime.parse(since).toUtc(),
-      );
-      return _json((await store.sync(_user(r), request)).toJson());
+    ..all(
+      '/v1/sync',
+      (Request r) =>
+          _json({'error': 'sync protocol v1 was retired; update the app'}, 410),
+    )
+    ..post('/v2/sync', (Request r) async {
+      final push = SyncPush.fromJson(await _readJson(r, config.maxBodyBytes));
+      try {
+        return _json((await store.sync(_user(r), push)).toJson());
+      } on CursorExpired catch (e) {
+        return _json({'error': 'cursor expired', 'floor': e.floor}, 410);
+      }
     })
-    ..post('/v1/sync', (Request r) async {
-      final body = await _readJson(r, config.maxBodyBytes);
-      final request = SyncRequest.fromJson(body);
-      return _json((await store.sync(_user(r), request)).toJson());
-    });
+    ..get(
+      '/v2/collection',
+      (Request r) async => _json((await store.collection(_user(r))).toJson()),
+    );
 
   final root = Router()
     ..get('/healthz', (Request r) async {

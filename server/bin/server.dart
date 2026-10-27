@@ -38,6 +38,7 @@ Future<void> main() async {
     config.port,
     poweredByHeader: null,
   );
+  server.autoCompress = true;
   log.info('listening on :${server.port}');
 
   Future<void> shutdown(ProcessSignal signal) async {

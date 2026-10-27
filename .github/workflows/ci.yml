@@ -8,6 +8,21 @@ on:
 jobs:
   app:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: anki_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/anki_test?sslmode=disable
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -34,6 +49,7 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos
       - run: dart test
+      - run: dart test -p node test/card_scheduler_test.dart test/collection_test.dart
 
   server:
     runs-on: ubuntu-latest

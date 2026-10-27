@@ -8,6 +8,8 @@ enum Rating {
 
   final int value;
 
-  static Rating fromValue(int value) =>
-      values.firstWhere((r) => r.value == value);
+  static Rating fromValue(int value) => values.firstWhere(
+    (r) => r.value == value,
+    orElse: () => throw FormatException('invalid rating: $value'),
+  );
 }

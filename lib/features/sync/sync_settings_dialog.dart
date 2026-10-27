@@ -35,13 +35,11 @@ class _SyncSettingsDialogState extends ConsumerState<SyncSettingsDialog> {
   String? _clean(String raw) => raw.trim().isEmpty ? null : raw.trim();
 
   Future<void> _save() async {
-    final previous = ref.read(syncSettingsProvider).value;
     final next = SyncSettings(
       serverUrl: _clean(_url.text),
       email: _clean(_email.text),
     );
     final service = ref.read(syncServiceProvider.notifier);
-    if (previous?.serverUrl != next.serverUrl) await service.resetCursor();
     await ref.read(syncSettingsProvider.notifier).save(next);
     if (mounted) Navigator.of(context).pop();
     service.syncNow();
