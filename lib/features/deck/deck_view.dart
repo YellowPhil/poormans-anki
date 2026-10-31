@@ -52,6 +52,40 @@ class _DeckViewState extends ConsumerState<DeckView> {
     showNewCardDialog(context, deckId: widget.deckId);
   }
 
+  Future<void> _deleteDeck(String name, int cardCount) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete deck?'),
+        content: Text(
+          cardCount == 0
+              ? '"$name" will be deleted.'
+              : '"$name" and its $cardCount '
+                    '${cardCount == 1 ? 'card' : 'cards'} will be deleted.',
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('confirm-delete-deck'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    ref.read(destinationProvider.notifier).go(const DashboardDestination());
+    await ref.read(decksProvider.notifier).deleteDeck(widget.deckId);
+  }
+
   Future<void> _import() async {
     final count = await showImportDialog(context, deckId: widget.deckId);
     if (count == null || !mounted) return;
@@ -110,6 +144,24 @@ class _DeckViewState extends ConsumerState<DeckView> {
                     if (due > 0) ...[
                       const SizedBox(width: 10),
                       CountBadge(due),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              ToolbarButton(
+                key: const Key('delete-deck-button'),
+                onPressed: () => _deleteDeck(deck.name, deck.cards.length),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.delete_outline_rounded,
+                      color: AppColors.danger,
+                    ),
+                    if (!compact) ...const [
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: AppColors.danger)),
                     ],
                   ],
                 ),

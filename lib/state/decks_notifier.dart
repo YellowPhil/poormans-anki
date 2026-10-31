@@ -54,6 +54,9 @@ class DecksNotifier extends AsyncNotifier<List<Deck>> {
     return store.view.card(cardId)!;
   }
 
+  Future<void> deleteDeck(String deckId) =>
+      _dispatch(DeckDeleted(id: _newId(), issuedAt: _now(), deckId: deckId));
+
   Future<void> importCards(
     String deckId,
     List<({String front, String back})> cards,

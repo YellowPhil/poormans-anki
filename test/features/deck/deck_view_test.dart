@@ -153,4 +153,31 @@ void main() {
     expect(find.text("what's C"), findsOneWidget);
     expect(find.text('Imported 2 cards'), findsOneWidget);
   });
+
+  testWidgets('delete removes the deck after confirmation', (tester) async {
+    await pumpDeck(tester);
+
+    await tester.tap(find.byKey(const Key('delete-deck-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete deck?'), findsOneWidget);
+    expect(
+      find.text('"Flashcards" and its 3 cards will be deleted.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('confirm-delete-deck')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Deck not found'), findsOneWidget);
+  });
+
+  testWidgets('cancelling delete keeps the deck', (tester) async {
+    await pumpDeck(tester);
+
+    await tester.tap(find.byKey(const Key('delete-deck-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CardTile), findsNWidgets(3));
+  });
 }
