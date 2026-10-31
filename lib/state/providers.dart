@@ -36,6 +36,12 @@ final decksProvider = AsyncNotifierProvider<DecksNotifier, List<Deck>>(
   DecksNotifier.new,
 );
 
+/// Recomputed on every collection change via [decksProvider].
+final reviewsProvider = Provider<List<ReviewEntry>>((ref) {
+  ref.watch(decksProvider);
+  return ref.watch(collectionStoreProvider).value?.view.reviews ?? const [];
+});
+
 final allCardsProvider = Provider<List<Flashcard>>((ref) {
   final decks = ref.watch(decksProvider).value ?? const [];
   return [for (final d in decks) ...d.cards];

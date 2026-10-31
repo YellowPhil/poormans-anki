@@ -44,7 +44,7 @@ void main() {
 
       await tester.tap(find.widgetWithText(NavItem, 'Dashboard'));
       await tester.pumpAndSettle();
-      expect(find.text('No statistics yet'), findsOneWidget);
+      expect(find.text('Activity'), findsOneWidget);
     },
   );
 
@@ -67,7 +67,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('tab-dashboard')));
     await tester.pumpAndSettle();
-    expect(find.text('No statistics yet'), findsOneWidget);
+    expect(find.text('Activity'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Menu'));
     await tester.pumpAndSettle();
@@ -91,7 +91,7 @@ void main() {
     }
 
     await press(LogicalKeyboardKey.digit1);
-    expect(find.text('No statistics yet'), findsOneWidget);
+    expect(find.text('Activity'), findsOneWidget);
 
     await press(LogicalKeyboardKey.digit3);
     expect(find.byType(DeckView), findsOneWidget);
