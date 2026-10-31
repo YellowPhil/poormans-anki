@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:poormans_anki/features/deck/card_detail.dart';
 import 'package:poormans_anki/features/deck/card_tile.dart';
 import 'package:poormans_anki/features/deck/deck_view.dart';
+import 'package:poormans_anki/features/deck/import_dialog.dart';
 
 import '../test_harness.dart';
 
@@ -13,12 +14,20 @@ void main() {
     card('c3', 'd1', 'lone note', ''),
   ]);
 
-  Future<void> pumpDeck(WidgetTester tester) async {
+  Future<void> pumpDeck(WidgetTester tester, {PickedTextFile? picked}) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final store = await storeWith([d]);
-    await tester.pumpWidget(harness(store, const DeckView(deckId: 'd1')));
+    await tester.pumpWidget(
+      harness(
+        store,
+        const DeckView(deckId: 'd1'),
+        overrides: [
+          pickMarkdownFileProvider.overrideWithValue(() async => picked),
+        ],
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -112,5 +121,36 @@ void main() {
 
     expect(find.text('lone note'), findsNothing);
     expect(find.byType(CardTile), findsNWidgets(2));
+  });
+
+  testWidgets('import adds one card per separated chunk', (tester) async {
+    await pumpDeck(
+      tester,
+      picked: (
+        name: 'cards.md',
+        content: "what's A\n---\nB\n;;;\nwhat's C\n---\nC\n",
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('import-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('import-pick-file')));
+    await tester.pumpAndSettle();
+    expect(find.text('cards.md'), findsOneWidget);
+    expect(find.text('2 cards found'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('import-separator')), '---');
+    await tester.pumpAndSettle();
+    expect(find.text('3 cards found'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('import-separator')), ';;;');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('import-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CardTile), findsNWidgets(5));
+    expect(find.text("what's A"), findsOneWidget);
+    expect(find.text("what's C"), findsOneWidget);
+    expect(find.text('Imported 2 cards'), findsOneWidget);
   });
 }

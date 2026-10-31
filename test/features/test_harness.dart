@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:anki_core/anki_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:fsrs/fsrs.dart' as fsrs;
 import 'package:poormans_anki/data/collection_store.dart';
 import 'package:poormans_anki/state/providers.dart';
@@ -10,11 +11,16 @@ import 'package:poormans_anki/storage/memory_file_store.dart';
 
 final testNow = DateTime.utc(2026, 9, 8, 12);
 
-Widget harness(MemoryFileStore store, Widget tab) => ProviderScope(
+Widget harness(
+  MemoryFileStore store,
+  Widget tab, {
+  List<Override> overrides = const [],
+}) => ProviderScope(
   overrides: [
     fileStoreProvider.overrideWithValue(store),
     clockProvider.overrideWithValue(() => testNow),
     schedulerProvider.overrideWithValue(CardScheduler(fuzz: false)),
+    ...overrides,
   ],
   child: MaterialApp(home: Scaffold(body: tab)),
 );

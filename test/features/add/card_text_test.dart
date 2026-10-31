@@ -80,4 +80,29 @@ void main() {
     expect(hasSeparator('a --- b'), isFalse);
     expect(hasSeparator(''), isFalse);
   });
+
+  group('splitImportText', () {
+    test('splits cards on the separator and sides on ---', () {
+      final cards = splitImportText(
+        "what's A\n---\nB\n;;;\nwhat's C\n---\nC\n",
+        ';;;',
+      );
+      expect(cards, [
+        (front: "what's A", back: 'B'),
+        (front: "what's C", back: 'C'),
+      ]);
+    });
+
+    test(
+      'drops blank chunks from leading, trailing and doubled separators',
+      () {
+        final cards = splitImportText(';;;\na\n;;;\n\n;;;\nb\n;;;\n', ';;;');
+        expect(cards, [(front: 'a', back: ''), (front: 'b', back: '')]);
+      },
+    );
+
+    test('an empty separator yields the whole text as one card', () {
+      expect(splitImportText('a\n---\nb', ''), [(front: 'a', back: 'b')]);
+    });
+  });
 }

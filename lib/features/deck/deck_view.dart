@@ -11,6 +11,7 @@ import '../shell/app_shell.dart';
 import '../shell/top_bar.dart';
 import 'card_detail.dart';
 import 'card_tile.dart';
+import 'import_dialog.dart';
 import 'new_card_dialog.dart';
 
 class DeckView extends ConsumerStatefulWidget {
@@ -49,6 +50,16 @@ class _DeckViewState extends ConsumerState<DeckView> {
       return;
     }
     showNewCardDialog(context, deckId: widget.deckId);
+  }
+
+  Future<void> _import() async {
+    final count = await showImportDialog(context, deckId: widget.deckId);
+    if (count == null || !mounted) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(count == 1 ? 'Imported 1 card' : 'Imported $count cards'),
+      ),
+    );
   }
 
   @override
@@ -109,6 +120,7 @@ class _DeckViewState extends ConsumerState<DeckView> {
             controller: _search,
             focusNode: _searchFocus,
             onNewCard: _newCard,
+            onImport: _import,
           ),
           Expanded(
             child: CallbackShortcuts(
@@ -168,11 +180,13 @@ class _Toolbar extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.onNewCard,
+    required this.onImport,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onNewCard;
+  final VoidCallback onImport;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -223,6 +237,18 @@ class _Toolbar extends StatelessWidget {
               SizedBox(width: 220, child: search),
             ] else
               Expanded(child: search),
+            const SizedBox(width: 10),
+            ToolbarButton(
+              key: const Key('import-button'),
+              onPressed: onImport,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.file_upload_outlined),
+                  if (!compact) ...const [SizedBox(width: 6), Text('Import')],
+                ],
+              ),
+            ),
             const SizedBox(width: 10),
             ToolbarButton(
               key: const Key('new-card-button'),

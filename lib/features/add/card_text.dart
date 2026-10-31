@@ -21,3 +21,12 @@ bool hasSeparator(String text) => _separatorLine.hasMatch(text);
   final next = '$prefix---\n';
   return (text: next, cursor: next.length);
 }
+
+/// Blank chunks are dropped, so leading/trailing separators are harmless.
+List<({String front, String back})> splitImportText(
+  String text,
+  String separator,
+) => [
+  for (final chunk in separator.isEmpty ? [text] : text.split(separator))
+    if (chunk.trim().isNotEmpty) splitCardText(chunk),
+];

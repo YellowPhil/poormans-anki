@@ -54,6 +54,25 @@ class DecksNotifier extends AsyncNotifier<List<Deck>> {
     return store.view.card(cardId)!;
   }
 
+  Future<void> importCards(
+    String deckId,
+    List<({String front, String back})> cards,
+  ) async {
+    final store = await _store();
+    await store.dispatchAll([
+      for (final c in cards)
+        CardAdded(
+          id: _newId(),
+          issuedAt: _now(),
+          cardId: _newId(),
+          deckId: deckId,
+          front: c.front,
+          back: c.back,
+        ),
+    ]);
+    ref.read(syncServiceProvider.notifier).schedule();
+  }
+
   Future<void> rateCard(Flashcard card, Rating rating) async {
     final now = _now();
     await _dispatch(
