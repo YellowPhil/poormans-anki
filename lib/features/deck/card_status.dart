@@ -1,6 +1,8 @@
 import 'package:anki_core/anki_core.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
 
+import '../../state/study_day.dart';
+
 enum CardPhase { fresh, learning, review }
 
 /// Interval label mirrors the scheduler: distance from last review to due.
@@ -15,8 +17,8 @@ enum CardPhase { fresh, learning, review }
 }
 
 String dueLabel(Flashcard card, DateTime now) {
-  final diff = card.due.difference(now);
-  if (diff.isNegative || diff.inDays == 0) return 'Due today';
-  if (diff.inDays == 1) return 'Due tomorrow';
-  return 'Due in ${diff.inDays} days';
+  final days = studyDaysBetween(now, card.due);
+  if (days <= 0) return 'Due today';
+  if (days == 1) return 'Due tomorrow';
+  return 'Due in $days days';
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/providers.dart';
+import '../../state/study_day.dart';
 import '../../theme/app_theme.dart';
 import '../deck/card_status.dart';
 import 'stats.dart';
@@ -36,7 +37,8 @@ class StatisticsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final reviews = ref.watch(reviewsProvider);
     final cards = ref.watch(allCardsProvider);
-    final today = dayOf(ref.watch(clockProvider)());
+    final now = ref.watch(nowProvider);
+    final today = dayOf(now);
     final perDay = reviewsPerDay(reviews);
     final monthAgo = addDays(today, -29);
     final lastMonth = [
@@ -92,8 +94,8 @@ class StatisticsTab extends ConsumerWidget {
           title: 'Upcoming',
           subtitle: 'Cards due in the next 14 days',
           child: _ForecastBars(
-            counts: dueForecast(cards, today, 14),
-            today: today,
+            counts: dueForecast(cards, now, 14),
+            today: studyDayOf(now),
           ),
         );
         return Align(

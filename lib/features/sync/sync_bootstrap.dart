@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../state/providers.dart';
 import '../../sync/sync_service.dart';
 
 /// Syncs on launch, on resume and every [interval]; mutations schedule their
-/// own debounced sync through [SyncService.schedule].
+/// own debounced sync through [SyncService.schedule]. Resume also refreshes
+/// [nowProvider] so cards that came due while backgrounded appear at once.
 class SyncBootstrap extends ConsumerStatefulWidget {
   const SyncBootstrap({super.key, required this.child});
 
@@ -39,7 +41,9 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _sync();
+    if (state != AppLifecycleState.resumed) return;
+    ref.read(nowProvider.notifier).refresh();
+    _sync();
   }
 
   void _sync() {

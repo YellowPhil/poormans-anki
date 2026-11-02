@@ -45,7 +45,7 @@ class CardDetail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final text = Theme.of(context).textTheme;
     final status = cardStatus(card);
-    final now = ref.watch(clockProvider)();
+    final now = ref.watch(nowProvider);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: ConstrainedBox(

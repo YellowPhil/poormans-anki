@@ -1,5 +1,6 @@
 import 'package:anki_core/anki_core.dart';
 
+import '../../state/study_day.dart';
 import '../deck/card_status.dart';
 
 /// Days are local calendar days; arithmetic goes through the `DateTime`
@@ -66,11 +67,11 @@ double? retention(Iterable<ReviewEntry> reviews) {
   return total == 0 ? null : recalled / total;
 }
 
-/// Index 0 includes overdue cards.
-List<int> dueForecast(Iterable<Flashcard> cards, DateTime today, int days) {
+/// Buckets by study day, matching the inbox; index 0 includes overdue cards.
+List<int> dueForecast(Iterable<Flashcard> cards, DateTime now, int days) {
   final counts = List.filled(days, 0);
   for (final c in cards) {
-    final offset = dayOf(c.due).difference(today).inDays;
+    final offset = studyDaysBetween(now, c.due);
     final index = offset < 0 ? 0 : offset;
     if (index < days) counts[index]++;
   }
