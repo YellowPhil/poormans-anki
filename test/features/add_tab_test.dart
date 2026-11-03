@@ -146,4 +146,22 @@ void main() {
         .firstWhere((d) => d.name == 'Gamma');
     expect(gamma.cards, hasLength(1));
   });
+
+  testWidgets('with onClose the X closes the host instead of clearing', (
+    tester,
+  ) async {
+    final store = await storeWith([deck('d1', 'Alpha', [])]);
+    var closed = 0;
+    await tester.pumpWidget(harness(store, AddTab(onClose: () => closed++)));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(editor), 'draft');
+    await tester.pump();
+    expect(find.byKey(clearButton), findsNothing);
+    await tester.tap(find.byKey(const Key('close-button')));
+    await tester.pump();
+
+    expect(closed, 1);
+    expect(editorText(tester), 'draft');
+  });
 }

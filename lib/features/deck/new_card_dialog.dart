@@ -7,13 +7,16 @@ Future<void> showNewCardDialog(
   required String deckId,
 }) => showDialog<void>(
   context: context,
-  builder: (_) => Dialog(
+  builder: (dialogContext) => Dialog(
     clipBehavior: Clip.antiAlias,
     insetPadding: const EdgeInsets.all(24),
     child: SizedBox(
       width: 760,
       height: 520,
-      child: AddTab(initialDeckId: deckId),
+      child: AddTab(
+        initialDeckId: deckId,
+        onClose: Navigator.of(dialogContext).pop,
+      ),
     ),
   ),
 );

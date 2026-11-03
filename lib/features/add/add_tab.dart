@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/providers.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/key_cap.dart';
 import 'card_text.dart';
 import 'new_deck_dialog.dart';
@@ -18,9 +19,12 @@ const editorTextStyle = TextStyle(
 );
 
 class AddTab extends ConsumerStatefulWidget {
-  const AddTab({super.key, this.initialDeckId});
+  const AddTab({super.key, this.initialDeckId, this.onClose});
 
   final String? initialDeckId;
+
+  /// When set, the top-right X closes the host instead of clearing the draft.
+  final VoidCallback? onClose;
 
   @override
   ConsumerState<AddTab> createState() => _AddTabState();
@@ -124,12 +128,33 @@ class _AddTabState extends ConsumerState<AddTab> {
                 Positioned(
                   top: 8,
                   right: 8,
-                  child: IconButton(
-                    key: const Key('clear-button'),
-                    tooltip: 'Clear',
-                    onPressed: _text.text.isEmpty ? null : _text.clear,
-                    icon: const Icon(Icons.close),
-                  ),
+                  child: widget.onClose == null
+                      ? IconButton(
+                          key: const Key('clear-button'),
+                          tooltip: 'Clear',
+                          onPressed: _text.text.isEmpty ? null : _text.clear,
+                          icon: const Icon(Icons.close),
+                        )
+                      : IconButton(
+                          key: const Key('close-button'),
+                          tooltip: 'Close',
+                          onPressed: widget.onClose,
+                          style:
+                              IconButton.styleFrom(
+                                hoverColor: AppColors.danger.withValues(
+                                  alpha: 0.16,
+                                ),
+                              ).copyWith(
+                                foregroundColor:
+                                    WidgetStateProperty.resolveWith(
+                                      (states) =>
+                                          states.contains(WidgetState.hovered)
+                                          ? AppColors.danger
+                                          : null,
+                                    ),
+                              ),
+                          icon: const Icon(Icons.close),
+                        ),
                 ),
               ],
             ),
