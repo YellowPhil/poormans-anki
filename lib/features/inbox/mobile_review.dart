@@ -1,4 +1,5 @@
 import 'package:anki_core/anki_core.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -153,8 +154,20 @@ class _Session extends StatefulWidget {
 class _SessionState extends State<_Session> {
   late bool _revealed = widget.card.back.isEmpty;
 
+  Offset? _pressedAt;
+
   void _reveal() {
     if (!_revealed) setState(() => _revealed = true);
+  }
+
+  /// Raw pointer tracking instead of `onTap`: the card text's [SelectionArea]
+  /// would win the tap gesture arena and swallow the flip.
+  void _onPointerUp(PointerUpEvent event) {
+    final start = _pressedAt;
+    _pressedAt = null;
+    if (start != null && (event.position - start).distance < kTouchSlop) {
+      _reveal();
+    }
   }
 
   @override
@@ -181,9 +194,11 @@ class _SessionState extends State<_Session> {
                     ],
                   ),
                 ),
-                GestureDetector(
+                Listener(
                   key: const Key('review-card'),
-                  onTap: _reveal,
+                  onPointerDown: (e) => _pressedAt = e.position,
+                  onPointerUp: _onPointerUp,
+                  onPointerCancel: (_) => _pressedAt = null,
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.surfaceRaised,
@@ -209,7 +224,6 @@ class _SessionState extends State<_Session> {
                             child: CardFace(
                               widget.card.front,
                               style: text.headlineSmall,
-                              selectable: false,
                             ),
                           ),
                           if (_revealed && widget.card.back.isNotEmpty) ...[
@@ -227,8 +241,7 @@ class _SessionState extends State<_Session> {
                               child: CardFace(
                                 widget.card.back,
                                 style: text.headlineSmall,
-                                selectable: false,
-                              ),
+                                ),
                             ),
                           ],
                         ],
