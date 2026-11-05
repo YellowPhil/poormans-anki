@@ -16,6 +16,7 @@ abstract final class AppColors {
   static const cool = Color(0xFF7FA7C9);
   static const success = Color(0xFF86B58C);
   static const badge = Color(0xFFE0574B);
+  static const selection = Color(0x4DD1A46A);
 }
 
 const _radius = BorderRadius.all(Radius.circular(8));
@@ -84,6 +85,11 @@ ThemeData buildAppTheme() {
     hoverColor: AppColors.surfaceHover,
     highlightColor: Colors.transparent,
     textTheme: text,
+    textSelectionTheme: const TextSelectionThemeData(
+      selectionColor: AppColors.selection,
+      selectionHandleColor: AppColors.warm,
+      cursorColor: AppColors.text,
+    ),
     iconTheme: const IconThemeData(color: AppColors.textMuted, size: 18),
     cardTheme: const CardThemeData(
       color: AppColors.surface,

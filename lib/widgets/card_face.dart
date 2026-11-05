@@ -7,16 +7,21 @@ class CardFace extends StatelessWidget {
     super.key,
     required this.style,
     this.align = WrapAlignment.start,
+    this.selectable = true,
   });
 
   final String markdown;
   final TextStyle? style;
   final WrapAlignment align;
 
+  /// Disable inside tap targets: [SelectionArea] claims taps and would starve
+  /// the ancestor's `onTap`.
+  final bool selectable;
+
   @override
   Widget build(BuildContext context) {
     final base = MarkdownStyleSheet.fromTheme(Theme.of(context));
-    return MarkdownBody(
+    final body = MarkdownBody(
       data: markdown,
       selectable: false,
       styleSheet: base.copyWith(
@@ -25,5 +30,6 @@ class CardFace extends StatelessWidget {
         textAlign: align,
       ),
     );
+    return selectable ? SelectionArea(child: body) : body;
   }
 }

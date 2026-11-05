@@ -209,6 +209,7 @@ class _SessionState extends State<_Session> {
                             child: CardFace(
                               widget.card.front,
                               style: text.headlineSmall,
+                              selectable: false,
                             ),
                           ),
                           if (_revealed && widget.card.back.isNotEmpty) ...[
@@ -226,6 +227,7 @@ class _SessionState extends State<_Session> {
                               child: CardFace(
                                 widget.card.back,
                                 style: text.headlineSmall,
+                                selectable: false,
                               ),
                             ),
                           ],

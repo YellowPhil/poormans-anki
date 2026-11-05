@@ -32,6 +32,7 @@ class CardTile extends StatelessWidget {
                     child: CardFace(
                       card.front,
                       style: Theme.of(context).textTheme.titleMedium,
+                      selectable: false,
                     ),
                   ),
                 ),
